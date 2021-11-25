@@ -1,0 +1,5 @@
+Para generar un archivo -o:
+    gcc -c -o NombreDelArchivo.o NombreDelArchivo.c
+
+Para correr un programa que usa funciones de otro:
+    gcc -fopenmp -o NombreDelEjecutable NombreDelArchivo.o NombreDelEjecutable.c
