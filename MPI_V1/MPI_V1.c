@@ -19,10 +19,10 @@ int main (int argc, char** argv) {
 
     /*Rango de integración */
 
-    double a = 3, b = 30;
+    double a = 0, b = 15;
 
     /*Cantidad de intervalos */
-    int n = 12800;
+    int n = 9000;
 
     double delta = (b-a)/n;
     double arreglo[4];
@@ -46,26 +46,43 @@ int main (int argc, char** argv) {
         }
     }
     
-    /*Proceso root*/
-    if(rank == 0) {
+    switch (rank)
+    {
+    case 0:
         start = clock();
-
-        printf("\nVersion 1 MPI\n");
     
-        printf("\nMetodos de integracion numerica\n");
-      
-        printf("Funcion: x*x");
-        printf("\nRango [%.2f, %.2f] con %d intervalos\n\n", a, b, n);
+        printf("-------------------------------------------------\n");
+        printf("\nMetodos de integracion numerica - Version 1 MPI\n\n");
+        printf("Funcion: 2x^2 + 3x - 1\n");
+        printf("Rango de integracion: [%.2f, %.2f]\n", a, b);
+        printf("Cantidad de intervalos: %d\n", n);
+        printf("-------------------------------------------------\n\n");
 
         for(int i = 1; i < cant; i++) {
             MPI_Recv(&resultado, 1, MPI_DOUBLE, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &status);
             arreglo[status.MPI_SOURCE-1] = resultado;
+            switch (status.MPI_SOURCE)
+            {
+            case 1:
+                printf("-Soy el proceso %i y calcule el Metodo de rectangulo: %f\n", status.MPI_SOURCE, arreglo[0]);
+                break;
+
+            case 2:
+                printf("-Soy el proceso %i y calcule el Metodo punto medio: %f\n", status.MPI_SOURCE, arreglo[1]);
+                break;
+
+            case 3:
+                printf("-Soy el proceso %i y calcule el Metodo de trapecio: %f\n", status.MPI_SOURCE, arreglo[2]);
+                break;
+
+            case 4:
+                printf("-Soy el proceso %i y calcule el Metodo de Simpson: %f\n\n", status.MPI_SOURCE, arreglo[3]);
+                break;
+            
+            default:
+                break;
+            }
         }
-        
-        printf("-Metodo de rectangulo: %f\n", arreglo[0]);
-        printf("-Metodo punto medio: %f\n", arreglo[1]);
-        printf("-Metodo de trapecio: %f\n", arreglo[2]);
-        printf("-Metodo de Simpson: %f\n\n", arreglo[3]);
 
         end = clock();
 
@@ -75,31 +92,34 @@ int main (int argc, char** argv) {
 
         printf("Tiempo de uso de CPU : %fs\n", tiempo_total);
         printf("Tiempo de ejecucion  total: %fs\n", elapsed);
-    }
+        break;
 
-    /*Cada proceso realiza un método de integración distinto y luego envía el resultado al proceso root*/
-    if(rank == 1) {
+    case 1: 
         printf("Hola, soy el proceso: %i\n", rank);
         resultado = metodoRectangulo(a,n,delta);
         MPI_Send(&resultado, 1, MPI_DOUBLE, dest, tag, MPI_COMM_WORLD);
-    }
-
-    if(rank == 2) {
+        break;
+    
+    case 2: 
         printf("Hola, soy el proceso: %i\n", rank);
         resultado = metodoPMedio(a,n,delta);
         MPI_Send(&resultado, 1, MPI_DOUBLE, dest, tag, MPI_COMM_WORLD);
-    }
+        break;
 
-    if(rank == 3) {
+    case 3:
         printf("Hola, soy el proceso: %i\n", rank);
         resultado = metodoTrapecio(a,b,n,delta);
         MPI_Send(&resultado, 1, MPI_DOUBLE, dest, tag, MPI_COMM_WORLD);
-    }
+        break;
 
-    if(rank == 4) {
+    case 4:
         printf("Hola, soy el proceso: %i\n", rank);
         resultado = metodoSimpson(a,b,n,delta);
         MPI_Send(&resultado, 1, MPI_DOUBLE, dest, tag, MPI_COMM_WORLD);
+        break;
+        
+    default:
+        break;
     }
     MPI_Finalize();
 }
@@ -107,7 +127,7 @@ int main (int argc, char** argv) {
 /*Función que calcula la f(x) a integrar valuada en la x pasada como parámetro*/
 double function(double x) {
     /* return sin(x); */
-    return x*x;
+    return 2*x*x + 3*x -1;
 }
 
 /* Regla del rectángulo */
