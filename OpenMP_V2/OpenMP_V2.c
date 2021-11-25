@@ -12,42 +12,44 @@ double metodoTrapecio(double a, double b, int n, double delta, int cantHilos, in
 double metodoSimpson(double a, double b, int n, double delta, int cantHilos, int chunk, double (*f)(double));
 
 int main() {
-    clock_t start, end;
-    double start1, end1;
+
+    /* VARIABLES DE MANEJO DE TIEMPO */
+    clock_t inicio, fin;
+    double inicio_omp, fin_omp;
     double tiempo_total;
 
-    start1 = omp_get_wtime(); 
+    inicio_omp = omp_get_wtime(); 
 
-    /*Paralelismo anidado*/
-    omp_set_nested(1);
-
-    const double pi = 3.14159265359;
+    /* CONSTANTES */
     const int cantHilos = 4;
 
-    /*Rango de integración */
-    double a = 3, b = 30;
+    /* DATOS DE INTEGRACION */
+    double a = 0, b = 15;       // Intervalo de integracion
+    int n = 9000;               // Cantidad de sub-intervalos
+    double delta = (b-a)/n;     // Paso de integracion
 
-    /*Cantidad de intervalos */
-    int n = 12800; 
-
-    double delta = (b-a)/n;
-    int tid, chunk = n / cantHilos;
+    /* DATOS DE HILOS */
+    omp_set_nested(1);          // Habilitamos el paralelismo anidado
+    int tid;                    // Id de cada hilo
+    int chunk = n / cantHilos;  // Porciones de iteracion
 
     printf("\nOpenMP_V2\n");
+    printf("\nFuncion: 2*x^2 + 3*x -1\n");
+    printf("Intervalo [%.2f, %.2f]\n", a, b);
+    printf("Cantidad de sub-intervalos: %d\n", n);
+    printf("Delta de integracion: %f\n\n", delta);
 
-    printf("Funcion: x*x\n");
-    printf("Rango [%.2f, %.2f] con %d intervalos\n\n", a, b, n);
+    inicio = clock();
 
-    start = clock();
-
-    /*Ejecución de los 4 métodos en paralelo, cada uno en un hilo*/
+    /* Comienza el paralelismo con OpenMP, donde cada hilo tiene su propio id */
     #pragma omp parallel default(shared) private(tid)
     {
-        tid = omp_get_thread_num();
+        tid = omp_get_thread_num(); // Cada hilo obtiene su id
         if (tid == 0)
             printf("Numero de hilos = %i\n", omp_get_num_threads());
 
-        /*Cada hilo ingresa en una section*/
+        /* Utilizamos secciones para cada método de integración. Cada una de ellas NO 
+           espera la finalizacion del resto */
         #pragma omp sections nowait
         {
             #pragma omp section
@@ -76,41 +78,42 @@ int main() {
         }
     }
 
-    end = clock();
-    tiempo_total = (end-start)/(double)CLOCKS_PER_SEC;
-    end1 = omp_get_wtime(); 
+    fin = clock();
+    tiempo_total = (fin-inicio)/(double)CLOCKS_PER_SEC;
+    fin_omp = omp_get_wtime(); 
 
     printf("Tiempo de uso de CPU : %fs\n", tiempo_total);
-    printf("Tiempo de ejecucion  total: %fs\n", end1 - start1);
+    printf("Tiempo de ejecucion  total: %fs\n", fin_omp - inicio_omp);
 
     return 0;
 }
 
-/*Función que calcula la f(x) a integrar valuada en la x pasada como parámetro*/
 double funcion(double x) {
-    return x*x;
+    return 2*x*x + 3*x -1;
 }
 
-/* Regla del rectángulo */
+/* Regla del Rectangulo */
 double metodoRectangulo(double a, int n, double delta, int cantHilos, int chunk, double (*f)(double)) {
 
     double x = 0.0, resultado = 0.0;
     int i, id;
 
-    /*Seteo cantidad de hilos que van a trabajar*/
+    /* Seteamos la cantidad de hilos que se dispararan */
     omp_set_num_threads(cantHilos);
     
-    /*Ejecución*/
-    /* Se hace el default para que sean shared todas las variables menos las que estan en private*/
-    #pragma omp parallel default(shared) private(i,x,id)
+    /* Comienza el paralelismo. Las variables i, x, id son privadas de cada hilo mientras 
+       que el resto son compartidas */
+    #pragma omp parallel default(shared) private(i, x, id)
     {
-        id = omp_get_thread_num();
+        id = omp_get_thread_num(); // Cada hilo obtiene su id
         printf("Rectangulo - Hola, soy el hilo hijo: %i\n", id);
 
-    /* Se hace un for en donde se va a dividir el arreglo en 4 partes iguales*/
+        /* Se dispara el for paralelo en donde se setea que se balancee la carga de los hilos,
+           y los intervalos que toma cada uno. Además el resultado de cada hilo se suma a una
+           variable "resultado" para unir el trabajo de cada uno */
         #pragma omp for schedule(dynamic,chunk) reduction(+:resultado)
         for(i = 0; i < n; i++) {
-            x = delta * i + a; //xi respectivas
+            x = delta * i + a;
             resultado += f(x);
         }
     }

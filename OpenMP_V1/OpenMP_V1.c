@@ -11,38 +11,40 @@
 double funcion(double x);
 
 int main() {
-    clock_t start, end;
-    double start1 , end1;
+
+    /* VARIABLES DE MANEJO DE TIEMPO */
+    clock_t inicio, fin;
+    double inicio_omp , fin_omp;
     double tiempo_total;
 
-    start1 = omp_get_wtime();
+    inicio_omp = omp_get_wtime();
 
-    const double pi = 3.14159265359;
+    /* DATOS DE INTEGRACION */
+    double a = 0, b = 15;       // Intervalo de integracion
+    int n = 9000;               // Cantidad de sub-intervalos
+    double delta = (b-a)/n;     // Paso de integracion
 
-    /*Rango de integración */
-    double a = 3, b = 30;
-
-    /*Cantidad de intervalos */
-    int n = 12800;
-
-    double delta = (b-a)/n;
-    int tid;
+    /* DATOS DE HILOS */
+    int tid;                    // Id de cada hilo
 
     printf("\nOpenMP_V1\n");
+    printf("\nFuncion: 2*x^2 + 3*x -1\n");
+    printf("Intervalo [%.2f, %.2f]\n", a, b);
+    printf("Cantidad de sub-intervalos: %d\n", n);
+    printf("Delta de integracion: %f\n\n", delta);
 
-    printf("\nFuncion: x*x\n");
-    printf("Rango [%.2f, %.2f] con %d intervalos\n\n", a, b, n);
+    inicio = clock();
 
-    start = clock();
-
-    /*Ejecución de los métodos en paralelo, cada uno en un hilo*/
+    /* Comienza el paralelismo con OpenMP, donde cada hilo tiene su propio id */
     #pragma omp parallel default(shared) private(tid)
     {
-        tid = omp_get_thread_num();
+        tid = omp_get_thread_num(); // Cada hilo obtiene su id
         if (tid == 0)
             printf("Numero de hilos = %d\n", omp_get_num_threads());
 
-        #pragma omp sections nowait //Cada seccion se ejecuta por un thread
+        /* Utilizamos secciones para cada método de integración. Cada una de ellas NO 
+           espera la finalizacion del resto */
+        #pragma omp sections nowait
         {
             #pragma omp section
             {
@@ -70,17 +72,16 @@ int main() {
         }
     }
 
-    end = clock();
-    tiempo_total = (end-start)/(double)CLOCKS_PER_SEC;
-    end1 = omp_get_wtime();
+    fin = clock();
+    tiempo_total = (fin-inicio)/(double)CLOCKS_PER_SEC;
+    fin_omp = omp_get_wtime();
 
-    printf("\nTiempo de uso de CPU : %fs\n", tiempo_total);
-    printf("Tiempo de ejecucion total: %fs\n", end1 - start1);
+    printf("\nTiempo de uso de CPU: %fs\n", tiempo_total);
+    printf("Tiempo de ejecucion total: %fs\n", fin_omp - inicio_omp);
     
     return 0;
 }
 
-/*Función que calcula la f(x) a integrar valuada en la x pasada como parámetro*/
 double funcion(double x) {
-    return x*x;
+    return 2*x*x + 3*x -1;
 }
