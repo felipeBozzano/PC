@@ -36,7 +36,7 @@ int main() {
     start = clock();
 
     /*Ejecución de los métodos en paralelo, cada uno en un hilo*/
-    #pragma omp parallel shared(a,b,n,delta, nthreads) private(tid)
+    #pragma omp parallel default(shared) private(tid)
     {
         tid = omp_get_thread_num();
         if (tid == 0)
@@ -47,32 +47,32 @@ int main() {
             #pragma omp section
             {
                 printf("Hola, soy el hilo: %i - Metodo de Rectangulo\n", tid);
-                printf("Hilo %i - Metodo de Rectangulo: %f\n", metodoRectangulo(a, n, delta, funcion));
+                printf("Hilo %i - Metodo de Rectangulo: %f\n", tid, metodoRectangulo(a, n, delta, funcion));
             }
                 
             #pragma omp section
             {
                 printf("Hola, soy el hilo: %i - Metodo de PMedio\n", tid);
-                printf("Hilo %i - Metodo de PMedio: %f\n", metodoPMedio(a, n, delta, funcion));
+                printf("Hilo %i - Metodo de PMedio: %f\n", tid, metodoPMedio(a, n, delta, funcion));
             }
                 
             #pragma omp section
             {
                 printf("Hola, soy el hilo: %i - Metodo de Trapecio\n", tid);
-                printf("Hilo %i - Metodo de Trapecio: %f\n", metodoTrapecio(a, b, n, delta, funcion));
+                printf("Hilo %i - Metodo de Trapecio: %f\n", tid, metodoTrapecio(a, b, n, delta, funcion));
             }
 
             #pragma omp section
             {
                 printf("Hola, soy el hilo: %i - Metodo de Simpson\n", tid);
-                printf("Hilo %i - Metodo de Simpson: %f\n", metodoSimpson(a, b, n, delta, funcion));
+                printf("Hilo %i - Metodo de Simpson: %f\n", tid, metodoSimpson(a, b, n, delta, funcion));
             }
         }
     }
 
     end = clock();
     tiempo_total = (end-start)/(double)CLOCKS_PER_SEC;
-    end1 = omp_get_wtime(); 
+    end1 = omp_get_wtime();
 
     printf("\nTiempo de uso de CPU : %fs\n", tiempo_total);
     printf("Tiempo de ejecucion total: %fs\n", end1 - start1);

@@ -131,7 +131,7 @@ double metodoPMedio(double a, int n, double delta, int cantHilos, int chunk, dou
     #pragma omp parallel default(shared) private(i,x,id)
     {
         id = omp_get_thread_num();
-        printf("PM - Hola, soy el hilo hijo: %i\n", id);
+        printf("PMedio - Hola, soy el hilo hijo: %i\n", id);
         
         #pragma omp for schedule(dynamic,chunk) reduction(+:resultado)
         for(i = 1; i <= n; i++) {

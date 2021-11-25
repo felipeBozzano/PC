@@ -32,6 +32,11 @@ int main (int argc, char** argv) {
     
     /*Inicialización del entorno MPI*/
     MPI_Init(&argc,&argv);
+    double time1 = MPI_Wtime();
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &cant);
+
     /* Solo permite que sean 5 procesos (el root mas los MN) que es lo que pide el enunciado*/
     if(cant != 5) {
         if (rank == 0) {
@@ -40,10 +45,6 @@ int main (int argc, char** argv) {
             exit(0);
         }
     }
-    double time1 = MPI_Wtime();
-
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &cant);
     
     /*Proceso root*/
     if(rank == 0) {
