@@ -1,0 +1,2 @@
+# PC
+OpenMP - MPI
