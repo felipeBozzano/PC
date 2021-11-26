@@ -13,10 +13,6 @@ double metodoSimpson(double a, double b, int n, double delta);
 
 int main (int argc, char** argv) {
 
-    /* VARIABLES DE MANEJO DE TIEMPO */
-    clock_t start, end;
-    double tiempo_total;
-
     /* DATOS DE INTEGRACION */
     double a = 0, b = 15;                   // Intervalo de integracion
     int n = 90000000;                       // Cantidad de sub-intervalos
@@ -29,7 +25,7 @@ int main (int argc, char** argv) {
     int cant_total;                         // Cantidad de procesos
 
     /* VARIABLES DE PROCESOS AGRUPADOS */
-    int color;                              // Identificador de cluster
+    int cluster;                              // Identificador de cluster
     int clustered_process_rank;             // Identificador de proceso dentro del cluster
     int clustered_cant_total;               // Cantidad de procesos dentro del cluster
     double resultado = 0.0, resultado1 = 0.0, resultado2 = 0.0, resultado3 = 0.0, resultado4 = 0.0;
@@ -38,7 +34,7 @@ int main (int argc, char** argv) {
     
     /*Inicialización del entorno de ejecución MPI*/
     MPI_Init(&argc,&argv);
-    double time1 = MPI_Wtime();
+    double start = MPI_Wtime();
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &cant_total);
@@ -51,11 +47,11 @@ int main (int argc, char** argv) {
             exit(0);
         }
     } else {
-        color = rank/4;
+        cluster = rank/4;
 
         /* Se divide el comunicador en 4 nuevos comunicadores (clusters) */
         MPI_Comm cluster_comm;
-        MPI_Comm_split(MPI_COMM_WORLD, color, rank, &cluster_comm);
+        MPI_Comm_split(MPI_COMM_WORLD, cluster, rank, &cluster_comm);
 
         MPI_Comm_rank(cluster_comm, &clustered_process_rank);
         MPI_Comm_size(cluster_comm, &clustered_cant_total);
@@ -73,12 +69,10 @@ int main (int argc, char** argv) {
             printf("Rango de integracion: [%.2f, %.2f]\n", a, b);
             printf("Cantidad de intervalos: %d\n", n);
             printf("-------------------------------------------------\n\n");
-
-            start = clock();
         }
 
-        /* Primer Cluster - Color 0 */
-        if(color == 0) {
+        /* Primer Cluster - cluster 0 */
+        if(cluster == 0) {
 
             /* Cada proceso ejecuta su porcion del metodo */
             resultado = metodoRectangulo(a_por_proceso, n_por_cluster, delta);
@@ -91,8 +85,8 @@ int main (int argc, char** argv) {
                 printf("-) Metodo de rectangulo %f\n", resultado1);
         }
 
-        /* Segundo Cluster - Color 1 */
-        if(color == 1) {
+        /* Segundo Cluster - cluster 1 */
+        if(cluster == 1) {
 
             resultado = metodoPMedio(a_por_proceso,n_por_cluster,delta);
 
@@ -102,8 +96,8 @@ int main (int argc, char** argv) {
                 printf("-) Metodo punto medio: %f\n", resultado2);
         }
 
-        /* Tercer Cluster - Color 2 */
-        if(color == 2) {
+        /* Tercer Cluster - cluster 2 */
+        if(cluster == 2) {
 
             resultado = metodoTrapecio(a_por_proceso,b_por_proceso,n_por_cluster,delta);
 
@@ -113,8 +107,8 @@ int main (int argc, char** argv) {
                 printf("-) Metodo de trapecio: %f\n", resultado3);
         }
 
-        /* Cuarto Comunicador - Color 3 */
-        if(color == 3) {
+        /* Cuarto Comunicador - cluster 3 */
+        if(cluster == 3) {
 
             resultado = metodoSimpson(a_por_proceso,b_por_proceso,n_por_cluster,delta);
 
@@ -128,14 +122,10 @@ int main (int argc, char** argv) {
         MPI_Barrier(MPI_COMM_WORLD);
 
         if(rank == 0) {
-            end = clock();
 
-            tiempo_total = (end-start)/(double)CLOCKS_PER_SEC;
+            double elapsed = MPI_Wtime() - start;
 
-            double elapsed = MPI_Wtime() - time1;
-
-            printf("\nTiempo de uso de CPU: %fs\n", tiempo_total);
-            printf("Tiempo de ejecucion total: %fs\n", elapsed);
+            printf("\nTiempo de ejecucion total: %fs\n", elapsed);
         }
 
         MPI_Comm_free(&cluster_comm);

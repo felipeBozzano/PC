@@ -14,11 +14,7 @@ double metodoSimpson(double a, double b, int n, double delta, int cantHilos, int
 int main() {
 
     /* VARIABLES DE MANEJO DE TIEMPO */
-    clock_t inicio, fin;
     double inicio_omp, fin_omp;
-    double tiempo_total;
-
-    inicio_omp = omp_get_wtime(); 
 
     /* CONSTANTES */
     const int cantHilos = 4;
@@ -41,7 +37,7 @@ int main() {
     printf("Delta de integracion: %f\n\n", delta);
     printf("-------------------------------------------------\n\n");
 
-    inicio = clock();
+    inicio_omp = omp_get_wtime(); 
 
     /* Comienza el paralelismo con OpenMP, donde cada hilo tiene su propio id */
     #pragma omp parallel default(shared) private(tid)
@@ -80,12 +76,9 @@ int main() {
         }
     }
 
-    fin = clock();
-    tiempo_total = (fin-inicio)/(double)CLOCKS_PER_SEC;
     fin_omp = omp_get_wtime(); 
 
-    printf("Tiempo de uso de CPU : %fs\n", tiempo_total);
-    printf("Tiempo de ejecucion  total: %fs\n", fin_omp - inicio_omp);
+    printf("\nTiempo de ejecucion  total: %fs\n", fin_omp - inicio_omp);
 
     return 0;
 }

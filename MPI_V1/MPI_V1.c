@@ -5,16 +5,13 @@
 #include <mpi.h>
 #include <unistd.h>
 
-double function(double x);
+double funcion(double x);
 double metodoRectangulo(double a, int n, double delta);
 double metodoPMedio(double a, int n, double delta);
 double metodoTrapecio(double a, double b, int n, double delta);
 double metodoSimpson(double a, double b, int n, double delta);
 
 int main (int argc, char** argv) {
-    
-    clock_t start, end;
-    double tiempo_total;
 
     // CONSTANTES Y VARIABLES DE CALCULO
     
@@ -28,7 +25,7 @@ int main (int argc, char** argv) {
     
     /*Inicialización del entorno MPI*/
     MPI_Init(&argc,&argv);
-    double time1 = MPI_Wtime();
+    double start = MPI_Wtime();
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &cant);
@@ -52,7 +49,6 @@ int main (int argc, char** argv) {
         printf("Cantidad de intervalos: %d\n", n);
         printf("Delta de integracion: %f\n\n", delta);
         printf("-------------------------------------------------\n\n");
-        start = clock();
         for(int i = 1; i < cant; i++) {
             MPI_Recv(&resultado, 1, MPI_DOUBLE, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &status);
             arreglo[status.MPI_SOURCE-1] = resultado;
@@ -79,15 +75,9 @@ int main (int argc, char** argv) {
             }
         }
 
-        end = clock();
+        double elapsed = MPI_Wtime() - start;
 
-        // Mide el tiempo de CPU
-        tiempo_total = (end-start)/(double)CLOCKS_PER_SEC; 
-
-        double elapsed = MPI_Wtime() - time1;
-
-        printf("Tiempo de uso de CPU : %fs\n", tiempo_total);
-        printf("Tiempo de ejecucion  total: %fs\n", elapsed);
+        printf("Tiempo de ejecucion total: %fs\n", elapsed);
         break;
 
     case 1: 
@@ -120,8 +110,7 @@ int main (int argc, char** argv) {
     MPI_Finalize();
 }
 
-/*Función que calcula la f(x) a integrar valuada en la x pasada como parámetro*/
-double function(double x) {
+double funcion(double x) {
     return 2*x*x + 3*x -1;
 }
 
@@ -132,7 +121,7 @@ double metodoRectangulo(double a, int n, double delta) {
 
     for(i = 0; i < n; i++) {
         x = delta * i + a;
-        resultado += function(x);
+        resultado += funcion(x);
     }
 
     resultado *= delta;
@@ -147,7 +136,7 @@ double metodoPMedio(double a, int n, double delta) {
 
     for(i = 1; i <= n; i++) {
         x = (delta*(i-1) + delta*i + 2*a) / 2;
-        resultado += function(x);
+        resultado += funcion(x);
     }
 
     resultado *= delta;
@@ -162,10 +151,10 @@ double metodoTrapecio(double a, double b, int n, double delta) {
     
     for(i = 1; i <= n-1; i++) {
         x = delta * i + a;
-        resultado += 2*function(x);
+        resultado += 2*funcion(x);
     }
 
-    resultado += function(a) + function(b);
+    resultado += funcion(a) + funcion(b);
     resultado *= delta/2; 
 
     return resultado;
@@ -180,13 +169,13 @@ double metodoSimpson(double a, double b, int n, double delta) {
         x = a + delta * i;
         
         if(i % 2 != 0) {
-            resultado += 4*function(x);
+            resultado += 4*funcion(x);
         } else {
-            resultado += 2*function(x);
+            resultado += 2*funcion(x);
         }
     }
 
-    resultado += function(a) + function(b);
+    resultado += funcion(a) + funcion(b);
     resultado *= delta/3;
     
     return resultado;
