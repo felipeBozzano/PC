@@ -18,7 +18,6 @@ int main (int argc, char** argv) {
 
     // CONSTANTES Y VARIABLES DE CALCULO
     
-    const double pi = 3.14159265359; // valor de pi
     double a = 0, b = 15; // Rango de integracion
     int n = 90000000; // Cantidad de intervalos
     double delta = (b-a)/n; // diferencial o paso de integracion
