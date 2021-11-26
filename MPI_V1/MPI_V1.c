@@ -22,7 +22,7 @@ int main (int argc, char** argv) {
     double a = 0, b = 15;
 
     /*Cantidad de intervalos */
-    int n = 9000;
+    int n = 90000000;
 
     double delta = (b-a)/n;
     double arreglo[4];

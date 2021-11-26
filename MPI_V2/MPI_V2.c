@@ -5,29 +5,35 @@
 #include <mpi.h>
 #include <unistd.h>
 
-double func(double x);
-double metodoRectangulo(double a, int n, double deltaX);
-double metodoPMedio(double a, int n, double deltaX);
-double metodoTrapecio(double a, double b, int n, double deltaX);
-double metodoSimpson(double a, double b, int n, double deltaX);
+double funcion(double x);
+double metodoRectangulo(double a, int n, double delta);
+double metodoPMedio(double a, int n, double delta);
+double metodoTrapecio(double a, double b, int n, double delta);
+double metodoSimpson(double a, double b, int n, double delta);
 
 int main (int argc, char** argv) {
+
+    /* VARIABLES DE MANEJO DE TIEMPO */
     clock_t start, end;
     double tiempo_total;
 
-    const double pi = 3.14159265359;
+    /* DATOS DE INTEGRACION */
+    double a = 0, b = 15;                   // Intervalo de integracion
+    int n = 90000000;                       // Cantidad de sub-intervalos
+    double delta = (b-a)/n;                 // Paso de integracion
+    double a_por_proceso, b_por_proceso;    // Intervalo de integracion por proceso
+    int n_por_cluster;                      // Cantidad de sub-intervalos por cluster
 
-    /*Rango de integración */
-   
-    double a = 3 , b = 30;
+    /* VARIABLES DE PROCESOS */
+    int rank;                               // Identificador
+    int cant_total;                         // Cantidad de procesos
 
-    /*Cantidad de intervalos */
-    int n = 12800;
-
-    double deltaX = (b-a)/n;
-    double second_a, second_b, second_n;
+    /* VARIABLES DE PROCESOS AGRUPADOS */
+    int color;                              // Identificador de cluster
+    int clustered_process_rank;             // Identificador de proceso dentro del cluster
+    int clustered_cant_total;               // Cantidad de procesos dentro del cluster
     double resultado = 0.0, resultado1 = 0.0, resultado2 = 0.0, resultado3 = 0.0, resultado4 = 0.0;
-    int rank, cant_total, color, second_rank, second_cant_total;
+
     MPI_Status status;
     
     /*Inicialización del entorno de ejecución MPI*/
@@ -40,90 +46,85 @@ int main (int argc, char** argv) {
     /*Si la cantidad de procesos es menor que 16 el programa se cierra*/
     if(cant_total < 16) {
         if (rank == 0) {
-            printf("La cantidad de procesos debe ser igual a 16\n");
+            printf("La cantidad de procesos debe ser por lo menos a 16\n");
             MPI_Finalize();
             exit(0);
         }
     } else {
         color = rank/4;
 
-        /*Se divide el comunicador en 4 nuevos comunicadores*/
-        MPI_Comm second_comm;
-        MPI_Comm_split(MPI_COMM_WORLD, color, rank, &second_comm);
-        printf("color: %i\n", color);
+        /* Se divide el comunicador en 4 nuevos comunicadores (clusters) */
+        MPI_Comm cluster_comm;
+        MPI_Comm_split(MPI_COMM_WORLD, color, rank, &cluster_comm);
 
-        MPI_Comm_rank(second_comm, &second_rank);
-        MPI_Comm_size(second_comm, &second_cant_total);
+        MPI_Comm_rank(cluster_comm, &clustered_process_rank);
+        MPI_Comm_size(cluster_comm, &clustered_cant_total);
 
-        /*Variables locales para cada proceso según su rank en cada comunicador*/
-        second_n = n/second_cant_total;
-        second_a = a + second_rank*second_n*deltaX;
-        second_b = second_a + second_n*deltaX;
+        /* Variables locales para cada proceso según su identificador en cada cluster */
+        n_por_cluster = n/clustered_cant_total;
+        a_por_proceso = a + clustered_process_rank*n_por_cluster*delta;
+        b_por_proceso = a_por_proceso + n_por_cluster*delta;
 
-        /*El proceso root en el comunicador WORLD imprime los mensajes*/
+        /* El proceso root en el comunicador WORLD imprime los mensajes */
         if(rank == 0) {
-            printf("\nVersion 2 MPI\n");
-
-            printf("\nMetodos de integracion numerica\n");
-    
-            printf("Funcion: x*x");
-            printf("\nRango [%.2f, %.2f] con %d intervalos\n\n", a, b, n);
+            printf("-------------------------------------------------\n");
+            printf("\nMetodos de integracion numerica - Version 2 MPI\n\n");
+            printf("Funcion: 2x^2 + 3x - 1\n");
+            printf("Rango de integracion: [%.2f, %.2f]\n", a, b);
+            printf("Cantidad de intervalos: %d\n", n);
+            printf("-------------------------------------------------\n\n");
 
             start = clock();
         }
 
-        /*Primer comunicador*/
+        /* Primer Cluster - Color 0 */
         if(color == 0) {
-            /*Todos los procesos que pertenecen a este comunicador realizan la porción de integración que les toca*/
-            resultado = metodoRectangulo(second_a, second_n, deltaX);
 
-            /*Se obtiene el resultado total del método*/
-            MPI_Reduce(&resultado, &resultado1, 1, MPI_DOUBLE, MPI_SUM, 0, second_comm);
+            /* Cada proceso ejecuta su porcion del metodo */
+            resultado = metodoRectangulo(a_por_proceso, n_por_cluster, delta);
 
-            /*Si es el proceso root del comunicador imprime el resultado*/
-            if(second_rank == 0) {
-                printf("-Metodo de rectangulo %f\n", resultado1);
-            }
+            /* Se suman los resultados de cada proceso */
+            MPI_Reduce(&resultado, &resultado1, 1, MPI_DOUBLE, MPI_SUM, 0, cluster_comm);
+
+            /* Elejimos el proceso con mayor peso para mostrar el resultado */
+            if(clustered_process_rank == 0)
+                printf("-) Metodo de rectangulo %f\n", resultado1);
         }
 
-        /*Segundo comunicador*/
+        /* Segundo Cluster - Color 1 */
         if(color == 1) {
-            
-            resultado = metodoPMedio(second_a,second_n,deltaX);
 
-            MPI_Reduce(&resultado, &resultado2, 1, MPI_DOUBLE, MPI_SUM, 0, second_comm);
+            resultado = metodoPMedio(a_por_proceso,n_por_cluster,delta);
 
-            if(second_rank == 0) {
-                printf("-Metodo punto medio: %f\n", resultado2);
-            }
+            MPI_Reduce(&resultado, &resultado2, 1, MPI_DOUBLE, MPI_SUM, 0, cluster_comm);
+
+            if(clustered_process_rank == 0)
+                printf("-) Metodo punto medio: %f\n", resultado2);
         }
 
-        /*Tercer comunicador*/
+        /* Tercer Cluster - Color 2 */
         if(color == 2) {
-            
-            resultado = metodoTrapecio(second_a,second_b,second_n,deltaX);
 
-            MPI_Reduce(&resultado, &resultado3, 1, MPI_DOUBLE, MPI_SUM, 0, second_comm);
+            resultado = metodoTrapecio(a_por_proceso,b_por_proceso,n_por_cluster,delta);
 
-            if(second_rank == 0) {
-                printf("-Metodo de trapecio: %f\n", resultado3);
-            }
+            MPI_Reduce(&resultado, &resultado3, 1, MPI_DOUBLE, MPI_SUM, 0, cluster_comm);
+
+            if(clustered_process_rank == 0)
+                printf("-) Metodo de trapecio: %f\n", resultado3);
         }
 
-        /*Cuarto comunicador*/
+        /* Cuarto Comunicador - Color 3 */
         if(color == 3) {
-            resultado = metodoSimpson(second_a,second_b,second_n,deltaX);
 
-            MPI_Reduce(&resultado, &resultado4, 1, MPI_DOUBLE, MPI_SUM, 0, second_comm);
+            resultado = metodoSimpson(a_por_proceso,b_por_proceso,n_por_cluster,delta);
 
-            if(second_rank == 0) {
-                printf("-Metodo de Simpson : %f\n", resultado4);
-            }
+            MPI_Reduce(&resultado, &resultado4, 1, MPI_DOUBLE, MPI_SUM, 0, cluster_comm);
+
+            if(clustered_process_rank == 0)
+                printf("-) Metodo de Simpson : %f\n", resultado4);
         }
-        
-       /* printf("Hola soy proceso --> %d con id hijo --> %d \n:",rank,second_rank);*/
 
-       /*El barrier permite que todos los procesos se sincronicen para que el root termine la ejecucion*/
+        /* Se pone un stop a los procesos hasta que todos terminan para continuar la ejecución */
         MPI_Barrier(MPI_COMM_WORLD);
 
         if(rank == 0) {
@@ -134,84 +135,81 @@ int main (int argc, char** argv) {
             double elapsed = MPI_Wtime() - time1;
 
             printf("\nTiempo de uso de CPU: %fs\n", tiempo_total);
-            printf("Tiempo de ejecucion  total: %fs\n", elapsed);
+            printf("Tiempo de ejecucion total: %fs\n", elapsed);
         }
 
-        MPI_Comm_free(&second_comm);
+        MPI_Comm_free(&cluster_comm);
         MPI_Finalize();
     }
 }
 
-/*Función que calcula la f(x) a integrar valuada en la x pasada como parámetro*/
-double func(double x) {
-   
-    /* return sin(x); */
-    return x*x;
+double funcion(double x) {
+    return 2*x*x + 3*x -1;
 }
 
 /* Regla del rectángulo */
-double metodoRectangulo(double a, int n, double deltaX) {
+double metodoRectangulo(double a, int n, double delta) {
     double x = 0.0, resultado = 0.0;
     int i;
 
     for(i = 0; i < n; i++) {
-        x = deltaX * i + a;
-        resultado += func(x);
+        x = delta * i + a;
+        resultado += funcion(x);
     }
 
-    resultado *= deltaX;
+    resultado *= delta;
 
     return resultado;
 }
 
 /* Regla del Punto Medio */
-double metodoPMedio(double a, int n, double deltaX) {
+double metodoPMedio(double a, int n, double delta) {
     double x = 0.0, resultado = 0.0;
     int i;
 
     for(i = 1; i <= n; i++) {
-        x = (deltaX*(i-1) + deltaX*i + 2*a) / 2;
-        resultado += func(x);
+        x = (delta*(i-1) + delta*i + 2*a) / 2;
+        resultado += funcion(x);
     }
 
-    resultado *= deltaX;
+    resultado *= delta;
      
     return resultado;
 }
 
 /* Regla del Trapecio */
-double metodoTrapecio(double a, double b, int n, double deltaX) {
+double metodoTrapecio(double a, double b, int n, double delta) {
     double x = 0.0, resultado = 0.0;
     int i;
     
     for(i = 1; i <= n-1; i++) {
-        x = deltaX * i + a;
-        resultado += 2*func(x);
+        x = delta * i + a;
+        resultado += 2*funcion(x);
     }
 
-    resultado += func(a) + func(b);
-    resultado *= deltaX/2; 
+    resultado += funcion(a) + funcion(b);
+    resultado *= delta/2; 
 
     return resultado;
 }
 
 /* Simpson 1/3 */
-double metodoSimpson(double a, double b, int n, double deltaX) {
+double metodoSimpson(double a, double b, int n, double delta) {
     double x = 0.0, resultado = 0.0;
     int i;
 
     for(i = 1; i < n; i++) {
-        x = a + deltaX * i;
+        x = a + delta * i;
         
         if(i % 2 != 0) {
-            resultado += 4*func(x);
+            resultado += 4*funcion(x);
         } else {
-            resultado += 2*func(x);
+            resultado += 2*funcion(x);
         }
     }
 
-    resultado += func(a) + func(b);
-    resultado *= deltaX/3;
+    resultado += funcion(a) + funcion(b);
+    resultado *= delta/3;
     
     return resultado;
 }
