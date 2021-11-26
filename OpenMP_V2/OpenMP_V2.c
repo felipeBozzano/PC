@@ -33,11 +33,13 @@ int main() {
     int tid;                    // Id de cada hilo
     int chunk = n / cantHilos;  // Porciones de iteracion
 
-    printf("\nOpenMP_V2\n");
-    printf("\nFuncion: 2*x^2 + 3*x -1\n");
-    printf("Intervalo [%.2f, %.2f]\n", a, b);
-    printf("Cantidad de sub-intervalos: %d\n", n);
+    printf("\n-------------------------------------------------\n");
+    printf("\nMetodos de integracion numerica - Version 2 OMP\n\n");
+    printf("Funcion: 2x^2 + 3x - 1\n");
+    printf("Rango de integracion: [%.2f, %.2f]\n", a, b);
+    printf("Cantidad de intervalos: %d\n", n);
     printf("Delta de integracion: %f\n\n", delta);
+    printf("-------------------------------------------------\n\n");
 
     inicio = clock();
 

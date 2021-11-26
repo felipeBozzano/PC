@@ -12,21 +12,18 @@ double metodoTrapecio(double a, double b, int n, double delta);
 double metodoSimpson(double a, double b, int n, double delta);
 
 int main (int argc, char** argv) {
+    
     clock_t start, end;
     double tiempo_total;
 
-    const double pi = 3.14159265359;
+    // CONSTANTES Y VARIABLES DE CALCULO
 
-    /*Rango de integración */
-
-    double a = 0, b = 15;
-
-    /*Cantidad de intervalos */
-    int n = 9000;
-
-    double delta = (b-a)/n;
-    double arreglo[4];
-    double resultado = 0.0;
+    const double pi = 3.14159265359; // valor de pi
+    double a = 0, b = 15; // Rango de integracion
+    int n = 9000; // cantidad de intervalos
+    double delta = (b-a)/n; // diferencial o paso de integracion
+    double arreglo[4]; // donde almacenamos el resultado de cada metodo de integracion
+    double resultado = 0.0; // resultado de un metodo.
     int rank, cant, source, dest = 0, tag = 0;
     MPI_Status status;
     
@@ -49,15 +46,14 @@ int main (int argc, char** argv) {
     switch (rank)
     {
     case 0:
-        start = clock();
-    
-        printf("-------------------------------------------------\n");
+        printf("\n-------------------------------------------------\n");
         printf("\nMetodos de integracion numerica - Version 1 MPI\n\n");
         printf("Funcion: 2x^2 + 3x - 1\n");
         printf("Rango de integracion: [%.2f, %.2f]\n", a, b);
         printf("Cantidad de intervalos: %d\n", n);
+        printf("Delta de integracion: %f\n\n", delta);
         printf("-------------------------------------------------\n\n");
-
+        start = clock();
         for(int i = 1; i < cant; i++) {
             MPI_Recv(&resultado, 1, MPI_DOUBLE, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &status);
             arreglo[status.MPI_SOURCE-1] = resultado;
@@ -86,7 +82,8 @@ int main (int argc, char** argv) {
 
         end = clock();
 
-        tiempo_total = (end-start)/(double)CLOCKS_PER_SEC; //solo se mide tiempo de cpu
+        // Mide el tiempo de CPU
+        tiempo_total = (end-start)/(double)CLOCKS_PER_SEC; 
 
         double elapsed = MPI_Wtime() - time1;
 
@@ -126,7 +123,6 @@ int main (int argc, char** argv) {
 
 /*Función que calcula la f(x) a integrar valuada en la x pasada como parámetro*/
 double function(double x) {
-    /* return sin(x); */
     return 2*x*x + 3*x -1;
 }
 
