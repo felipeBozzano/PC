@@ -17,10 +17,10 @@ int main (int argc, char** argv) {
     double tiempo_total;
 
     // CONSTANTES Y VARIABLES DE CALCULO
-
+    
     const double pi = 3.14159265359; // valor de pi
     double a = 0, b = 15; // Rango de integracion
-    int n = 9000; // cantidad de intervalos
+    int n = 90000000; // Cantidad de intervalos
     double delta = (b-a)/n; // diferencial o paso de integracion
     double arreglo[4]; // donde almacenamos el resultado de cada metodo de integracion
     double resultado = 0.0; // resultado de un metodo.

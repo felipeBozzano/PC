@@ -21,7 +21,7 @@ int main() {
 
     /* DATOS DE INTEGRACION */
     double a = 0, b = 15;       // Intervalo de integracion
-    int n = 9000;               // Cantidad de sub-intervalos
+    int n = 90000000;           // Cantidad de sub-intervalos
     double delta = (b-a)/n;     // Paso de integracion
 
     /* DATOS DE HILOS */
